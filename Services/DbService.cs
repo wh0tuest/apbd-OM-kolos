@@ -82,28 +82,24 @@ public class DbService : IDbService
 
         try
         {
-            // Czy rezerwacja już istnieje
             var checkCmd = new SqlCommand("SELECT COUNT(1) FROM Booking WHERE IdBooking = @Id", conn, tran);
             checkCmd.Parameters.AddWithValue("@Id", request.BookingId);
             var exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) > 0;
             if (exists)
                 return BookingResult.BookingExists;
 
-            // Czy gość istnieje
             var guestCmd = new SqlCommand("SELECT COUNT(1) FROM Guest WHERE IdGuest = @Id", conn, tran);
             guestCmd.Parameters.AddWithValue("@Id", request.GuestId);
             var guestExists = Convert.ToInt32(await guestCmd.ExecuteScalarAsync()) > 0;
             if (!guestExists)
                 return BookingResult.GuestNotFound;
 
-            // Czy pracownik istnieje
             var empCmd = new SqlCommand("SELECT COUNT(1) FROM Employee WHERE EmployeeNumber = @Num", conn, tran);
             empCmd.Parameters.AddWithValue("@Num", request.EmployeeNumber);
             var empExists = Convert.ToInt32(await empCmd.ExecuteScalarAsync()) > 0;
             if (!empExists)
                 return BookingResult.EmployeeNotFound;
 
-            // Wstaw rezerwację
             var insertBooking = new SqlCommand(@"
                 INSERT INTO Booking (IdBooking, Date, IdGuest, EmployeeNumber)
                 VALUES (@Id, GETDATE(), @GuestId, @EmpNum);", conn, tran);
@@ -112,10 +108,8 @@ public class DbService : IDbService
             insertBooking.Parameters.AddWithValue("@EmpNum", request.EmployeeNumber);
             await insertBooking.ExecuteNonQueryAsync();
 
-            // Przypisz atrakcje
             foreach (var attraction in request.Attractions)
             {
-                // Sprawdź czy atrakcja istnieje
                 var attrIdCmd = new SqlCommand("SELECT IdAttraction FROM Attraction WHERE Name = @Name", conn, tran);
                 attrIdCmd.Parameters.AddWithValue("@Name", attraction.Name);
                 var attrIdObj = await attrIdCmd.ExecuteScalarAsync();
